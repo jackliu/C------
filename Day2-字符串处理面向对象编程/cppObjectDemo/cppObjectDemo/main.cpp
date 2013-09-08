@@ -28,6 +28,7 @@ int main(int argc, const char * argv[])
     
     
     //创建一个带参构造函数定义的对象
+    //emp2 是一个根据 Employee 类的要求，找到的一个员工
     Employee emp2("liu",30,"PM");
     emp2.doMeeting();
     emp2.show();

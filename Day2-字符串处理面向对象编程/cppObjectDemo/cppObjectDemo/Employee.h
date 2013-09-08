@@ -22,10 +22,15 @@ class Employee
     
     //}
     //private 私有的、私人的
+    //属性是任何事物，天生具备的性质
+    //所有属性，全部定义为私有
 private:
     string name;
     int age;
     string title;
+    
+protected:
+    //受保护的
     
     //public 公开的
 public:
@@ -53,3 +58,10 @@ public:
 
 
 #endif
+
+
+
+
+
+
+
