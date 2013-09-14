@@ -1,0 +1,561 @@
+笔记：
+    回顾 C++ 类的继承与派生
+    了解 C++ 多态
+    掌握 C++ 异常处理
+
+1、回顾 C++ 类的继承与派生
+C++继承可以是单一继承或多重继承，每一个继承连接可以是public,protected,private也可以是
+virtual或non-virtual。然后是各个成员函数选项可以是virtual或non-virtual或
+pure virtual。
+
+　　public继承，例如下：
+
+1 class base
+2 ｛...｝
+3 class derived:public base
+4 ｛...｝
+　　如果这样写，编译器会理解成类型为derived的对象同时也是类型为base的对象，但类型
+为base的对象不是类型为derived的对象。这点很重要。那么函数形参为base类型适用于
+derived，形参为derived不适用于base。
+下面是验证代码，一个参数为base的函数，传入derived应该成功执行，相反，
+一个参数为derived的函数
+
+ 1 #include <iostream>
+ 2 #include <stdio.h>
+ 3 
+ 4 class base
+ 5 {
+ 6     public:
+ 7     base()
+ 8     :baseName(""),baseData(0)
+ 9     {}
+10     
+11     base(std::string bn,int bd)
+12     :baseName(bn),baseData(bd)
+13     {}
+14     
+15     std::string getBaseName() const
+16     {
+17         return baseName;
+18     }
+19     
+20     int getBaseData()const
+21     {
+22         return baseData;
+23     }
+24     
+25     private:
+26         std::string baseName;
+27         int baseData;
+28 };
+29 
+30 class derived:public base
+31 {
+32     public:
+33         derived():base(),derivedName("")
+34         {}
+35         derived(std::string bn,int bd,std::string dn)
+36         :base(bn,bd),derivedName(dn)
+37         {}
+38         std::string getDerivedName() const
+39         {
+40             return derivedName;
+41         }
+42     private:
+43         std::string derivedName;
+44 };
+45 
+46 void show(std::string& info,const base& b)
+47 {
+48     info.append("Name is ");
+49     info.append(b.getBaseName());
+50     info.append(", baseData is ");
+51     char buffer[10];
+52     sprintf(buffer,"%d",b.getBaseData());
+53         info.append(buffer);
+54 }
+55 
+56 int main(int argc,char* argv[])
+57 {
+58     base b("test",10);
+59     std::string s;
+60     show(s,b);
+61     std::cout<<s<<std::endl;
+62     derived d("btest",5,"dtest");
+63     std::string ss;
+64     show(ss,d);
+65     std::cout<<ss<<std::endl;
+66     return 0;
+67 }
+
+运行结果为：
+
+base:baseName is test, baseData is 10
+base:baseName is btest, baseData is 5
+下面改改代码，将函数参数变为derived
+
+
+void show2(std::string& info,const derived& d)
+{
+    info.append("Name is ");
+    info.append(d.getBaseName());
+    info.append(", baseData is ");
+    char buffer[10];
+    sprintf(buffer,"%d",d.getBaseData());
+    info.append(buffer);
+}
+
+调用show(ss,d);编译器报错
+
+1 derived_class.cpp: In function `int main(int, char**)':
+2 derived_class.cpp:84: error: invalid initialization of reference of type 'const derived&' from expression of type 'base'
+3 derived_class.cpp:70: error: in passing argument 2 of `void show2(std::string&, const derived&)'
+第二点对各种形式的继承作出验证，首先给出表格
+
+继承方式\成员类型	public	protected	private
+public	public	protected	无法继承
+protected	protected	protected	无法继承
+private	private	private	无法继承
+这里解释一下，这里仅仅表达基类的成员，被public,protected,private三种方式继承后，在原基类为public,protectedc,private的成员在继承类里类型为表格里内容
+
+
+ 1 class base
+ 2 {
+ 3     public:
+ 4         std::string testPublic()
+ 5         {
+ 6             return std::string("this is public base");
+ 7         }
+ 8     protected:
+ 9         std::string testProtected()
+10         {
+11             return std::string("this is protected base");
+12         }
+13     private:
+14         std::string testPrivate()
+15         {
+16             return std::string("this is private base");
+17         }
+18 };
+19 
+20 class derivedPublic:public base
+21 {
+22     public:
+23         std::string testPubPublic()
+24         {
+25             return testPublic()+= "in derived";
+26         }
+27         
+28         std::string testProPublic()
+29         {    
+30             return testProtected()+= "in derived";
+31         }
+32         
+33         std::string testPriPublic()                   
+34         {    
+35             return testPrivate()+= "in derived";
+36         }
+37 };
+38 
+39 int main(int argc,char* argv[])
+40 ｛
+41     derivedPublic dpub;
+42     std::cout << dpub.testPublic() << std::endl; 
+43 ｝
+
+报下面错误，说明testPrivate()不是derived私有函数而是base的私有函数
+
+derived11.cpp:16: error: `std::string base::testPrivate()' is private
+derived11.cpp:36: error: within this context
+这样验证private类型成员无法被继承（public,private,protected）注：private，protected略去不做证明
+
+下面只要验证 testProtected 能被第三层继承类继承，但是无法被第三层类直接调用就说明是public继承后继承类型为protected，而基类为Public类型成员则即可被继承又可以直接调用。
+
+
+ 1 #include <iostream>
+ 2 #include <string>
+ 3 
+ 4 class base
+ 5 {
+ 6     public:
+ 7         std::string testPublic()
+ 8         {
+ 9             return std::string("this is public base");
+10         }
+11     protected:
+12         std::string testProtected()
+13         {
+14             return std::string("this is protected base");
+15         }
+16     private:
+17         std::string testPrivate()
+18         {
+19             return std::string("this is private base");
+20         }
+21 };
+22 
+23 class derivedPublic:public base
+24 {
+25     public:
+26         std::string testPubPublic()
+27         {
+28             return testPublic()+= "in derived";
+29         }
+30         
+31         std::string testProPublic()
+32         {    
+33             return testProtected()+= "in derived";
+34         }
+35         
+36 //        std::string testPriPublic()                   
+37 //        {    
+38 //            return testPrivate()+= "in derived";
+39 //        }
+40 };
+41 
+42 class deepDerived:public derivedPublic
+43 {
+44     public:
+45         std::string deepProtected()
+46         {
+47             return testProtected() +="in deep";
+48         }
+49         
+50         std::string deepPublic()
+51         {
+52             return testPublic() +="indeep";
+53         }
+54 };
+55 
+56 int main(int argc,char* argv[])
+57 {
+58     derivedPublic dpub;
+59     std::cout << dpub.testProtected() << std::endl; 
+60     deepDerived deepdpub;
+61     std::cout<<deepdpub.testPublic() <<std::endl;
+62     std::cout<<deepdpub.testProtected() <<std::endl;
+63     std::cout<<deepdpub.deepProtected() <<std::endl;
+64     std::cout<<deepdpub.deepPublic() <<std::endl;
+65 }
+
+这里服务器报错
+
+derived12.cpp:13: error: `std::string base::testProtected()' is protected
+derived12.cpp:62: error: within this context
+这样就验证了一个是public，一个是protected，protected是不能直接调用的，但是被继承后是可以被public成员调用的。
+下面的已经证明，详细步骤就略去如果对该部分验证感兴趣，可以看下面代码。
+
+ #include <iostream>
+  2 #include <string>
+  3 class base
+  4 {
+  5     public:
+  6         std::string testPublic()
+  7         {
+  8             return std::string("this is public base");
+  9         }
+ 10     protected:
+ 11         std::string testProtected()
+ 12         {
+ 13             return std::string("this is protected base");
+ 14         }
+ 15     private:
+ 16         std::string testPrivate()
+ 17         {
+ 18             return std::string("this is private base");
+ 19         }
+ 20 };
+ 21 
+ 22 class derivedPublic:public base
+ 23 {
+ 24     public:
+ 25         std::string testPubPublic()
+ 26         {
+ 27             return testPublic()+= "in derived";
+ 28         }
+ 29         
+ 30         std::string testProPublic()
+ 31         {    
+ 32             return testProtected()+= "in derived";
+ 33         }
+ 34         
+ 35 //        std::string testPriPublic()                   //私有成员并没有被继承下来
+ 36 //        {    
+ 37 //            return testPrivate()+= "in derived";
+ 38 //        }
+ 39 };
+ 40 
+ 41 class deepDerived:public derivedPublic
+ 42 {
+ 43     public:
+ 44         std::string test()
+ 45         {
+ 46             return testPublic() +="in 3";
+ 47         }
+ 48 };
+ 49 
+ 50 class derivedProtected:protected base
+ 51 {
+ 52     public:
+ 53         std::string testPubProtected()
+ 54         {
+ 55             return testPublic()+= "in derived";
+ 56         }
+ 57         
+ 58         std::string testProProtected()
+ 59         {    
+ 60             return testProtected()+= "in derived";
+ 61         }
+ 62 };
+ 63 
+ 64 class deepDerived2:public derivedProtected
+ 65 {
+ 66     public:
+ 67         std::string test()
+ 68         {
+ 69             return testPublic() +="in 3";
+ 70         }
+ 71 };
+ 72 
+ 73 class derivedPrivate:private base
+ 74 {
+ 75     public:
+ 76         std::string testPubPirvate()
+ 77         {
+ 78             return testPublic()+= "in derived";
+ 79         }
+ 80         
+ 81         std::string testProPrivate()
+ 82         {    
+ 83             return testProtected()+= "in derived";
+ 84         }
+ 85         
+ 86 };
+ 87 
+ 88 //class deepDerived3:public derivedPrivate
+ 89 //{
+ 90 //    public:
+ 91 //        std::string test()
+ 92 //        {
+ 93 //            return testPublic() +="in 3";
+ 94 //        }
+ 95 //};
+ 96 
+ 97 int main(int argc,char* argv[])
+ 98 {
+ 99     derivedPublic dpub;
+100     //derivedProtected dpro;
+101     //derivedPrivate dpri;
+102     std::cout<<dpub.testPublic()<<std::endl;       //
+103     //std::cout<<dpub.testProtected()<<std::endl;    //用户被继承也是无法使用
+104     //cout<<dpub.testPrivate()<<std::endl;         //基类都是私有函数
+105     std::cout<<dpub.testPubPublic()<<std::endl;
+106     std::cout<<dpub.testProPublic()<<std::endl;
+107     //std::cout<<dpub.testPriPrivate()<<std::endl; //没有被继承
+108     
+109     deepDerived dd;
+110     std::cout<<dd.test()<<std::endl;
+111         
+112     derivedProtected dpro;
+113     //std::cout<<dpro.testPublic()<<std::endl;        //变成protected类型
+114     std::cout<<dpro.testPubProtected()<<std::endl;
+115     std::cout<<dpro.testProProtected()<<std::endl;
+116         
+117     deepDerived2 dd2;
+118     std::cout<<dd2.test()<<std::endl;
+119         
+120     derivedPrivate dpri;
+121     std::cout<<dpri.testPubPirvate()<<std::endl;
+122     std::cout<<dpri.testProPrivate()<<std::endl;
+123     
+124 //    deepDerived3 dd3;
+125 //    std::cout<<dd3.test()<<std::endl;
+126 ｝
+
+
+2、了解 C++ 多态
+c++赋值兼容原则：
+    一个公有派生类的对象在使用上可以被当做基类的对象，反之则禁止。
+    派生类的对象可以被赋值给基类对象。
+    派生类的对象可以初始化基类的引用（指针也一样）
+　　多态的概念：
+
+　　1：先期联编：能够在编译时就能够确定哪个重载的成员函数被调用的情况
+　　2：后期联编（多态性）：系统在运行时，能够根据其参数类型确定调用哪个重载的成员函数的情况
+
+
+多态性可以简单地概括为“一个接口，多种方法”，程序在运行时才决定调用的函数，它是面向对象编程领域的核心概念。多态(polymorphisn)，字面意思多种形状。
+　　C++多态性是通过虚函数来实现的，虚函数允许子类重新定义成员函数，而子类重新定义父类的做法称为覆盖(override)，或者称为重写。（这里我觉得要补充，重写的话可以有两种，直接重写成员函数和重写虚函数，只有重写了虚函数的才能算作是体现了C++多态性）而重载则是允许有多个同名的函数，而这些函数的参数列表不同，允许参数个数不同，参数类型不同，或者两者都不同。编译器会根据这些函数的不同列表，将同名的函数的名称做修饰，从而生成一些不同名称的预处理函数，来实现同名函数调用时的重载问题。但这并没有体现多态性。
+　　多态与非多态的实质区别就是函数地址是早绑定还是晚绑定。如果函数的调用，在编译器编译期间就可以确定函数的调用地址，并生产代码，是静态的，就是说地址是早绑定的。而如果函数调用的地址不能在编译器期间确定，需要在运行时才确定，这就属于晚绑定。
+　　那么多态的作用是什么呢，封装可以使得代码模块化，继承可以扩展已存在的代码，他们的目的都是为了代码重用。而多态的目的则是为了接口重用。也就是说，不论传递过来的究竟是那个类的对象，函数都能够通过同一个接口调用到适应各自对象的实现方法。
+　　最常见的用法就是声明基类的指针，利用该指针指向任意一个子类对象，调用相应的虚函数，可以根据指向的子类的不同而实现不同的方法。如果没有使用虚函数的话，即没有利用C++多态性，则利用基类指针调用相应的函数的时候，将总被限制在基类函数本身，而无法调用到子类中被重写过的函数。因为没有多态性，函数调用的地址将是一定的，而固定的地址将始终调用到同一个函数，这就无法实现一个接口，多种方法的目的了。
+
+
+多态性的条件：
+    1：基类的虚函数。
+    2:派生类的虚函数必须和基类的虚函数声明一致（包括参数类型，返回值类)
+    3:类的成员函数才可以说明成虚函数（一般函数不行）。静态成员函数不受制于某个对象，不能说明成虚函数。内联函数不能在运行中动态确定。构造函数因为负责构造对象，所以也不能是虚函数。而析构函数一般是虚函数。
+     对于析构函数一般都是虚函数的解释：
+    4:指针，或者引用才能实现多态
+
+
+C++的多态性是C++实现面向对象技术的基础。具体的说，通过一个指向基类的指针调用虚成员函数的时候，运行时系统将能够根据指针所指向的实际对象调用恰当的成员函数实现。如下所示：
+
+class Base { 
+　　public:
+　　 virtual void vmf() { ... } 
+　　};
+　　
+　　class Derived : public Base {
+　　public:
+　　 virtual void vmf() { ... } 
+　　};
+　　
+　　Base* p = new Base();
+　　p->vmf(); // 这里调用Base::vmf
+　　p = new Derived();
+　　p->vmf(); // 这里调用 
+             // Derived::vmf 
+　　...
+
+
+笔试题目：
+
+
+[cpp] view plaincopy
+#include<iostream>  
+using namespace std;  
+  
+class A  
+{  
+public:  
+    void foo()  
+    {  
+        printf("1\n");  
+    }  
+    virtual void fun()  
+    {  
+        printf("2\n");  
+    }  
+};  
+class B : public A  
+{  
+public:  
+    void foo()  
+    {  
+        printf("3\n");  
+    }  
+    void fun()  
+    {  
+        printf("4\n");  
+    }  
+};  
+int main(void)  
+{  
+    A a;  
+    B b;  
+    A *p = &a;  
+    p->foo();  
+    p->fun();  
+    p = &b;  
+    p->foo();  
+    p->fun();  
+    return 0;  
+}  
+      第一个p->foo()和p->fuu()都很好理解，本身是基类指针，指向的又是基类对象，调用的都是基类本身的函数，因此输出结果就是1、2。
+ 　  第二个输出结果就是1、4。p->foo()和p->fuu()则是基类指针指向子类对象，正式体现多态的用法，p->foo()由于指针是个基类指针，指向是一个固定偏移量的函数，因此此时指向的就只能是基类的foo()函数的代码了，因此输出的结果还是1。而p->fun()指针是基类指针，指向的fun是一个虚函数，由于每个虚函数都有一个虚函数列表，此时p调用fun()并不是直接调用函数，而是通过虚函数列表找到相应的函数的地址，因此根据指向的对象不同，函数地址也将不同，这里将找到对应的子类的fun()函数的地址，因此输出的结果也会是子类的结果4。
+　　笔试的题目中还有一个另类测试方法。即
+       B *ptr = (B *)&a;  ptr->foo();  ptr->fun();
+　　问这两调用的输出结果。这是一个用子类的指针去指向一个强制转换为子类地址的基类对象。结果，这两句调用的输出结果是3，2。
+　　并不是很理解这种用法，从原理上来解释，由于B是子类指针，虽然被赋予了基类对象地址，但是ptr->foo()在调用的时候，由于地址偏移量固定，偏移量是子类对象的偏移量，于是即使在指向了一个基类对象的情况下，还是调用到了子类的函数，虽然可能从始到终都没有子类对象的实例化出现。
+　　而ptr->fun()的调用，可能还是因为C++多态性的原因，由于指向的是一个基类对象，通过虚函数列表的引用，找到了基类中fun()函数的地址，因此调用了基类的函数。由此可见多态性的强大，可以适应各种变化，不论指针是基类的还是子类的，都能找到正确的实现方法。
+[cpp] view plaincopy
+//小结：1、有virtual才可能发生多态现象  
+// 2、不发生多态（无virtual）调用就按原类型调用  
+#include<iostream>  
+using namespace std;  
+  
+class Base  
+{  
+public:  
+    virtual void f(float x)  
+    {  
+        cout<<"Base::f(float)"<< x <<endl;  
+    }  
+    void g(float x)  
+    {  
+        cout<<"Base::g(float)"<< x <<endl;  
+    }  
+    void h(float x)  
+    {  
+        cout<<"Base::h(float)"<< x <<endl;  
+    }  
+};  
+class Derived : public Base  
+{  
+public:  
+    virtual void f(float x)  
+    {  
+        cout<<"Derived::f(float)"<< x <<endl;   //多态、覆盖  
+    }  
+    void g(int x)  
+    {  
+        cout<<"Derived::g(int)"<< x <<endl;     //隐藏  
+    }  
+    void h(float x)  
+    {  
+        cout<<"Derived::h(float)"<< x <<endl;   //隐藏  
+    }  
+};  
+int main(void)  
+{  
+    Derived d;  
+    Base *pb = &d;  
+    Derived *pd = &d;  
+    // Good : behavior depends solely on type of the object  
+    pb->f(3.14f);   // Derived::f(float) 3.14  
+    pd->f(3.14f);   // Derived::f(float) 3.14  
+  
+    // Bad : behavior depends on type of the pointer  
+    pb->g(3.14f);   // Base::g(float)  3.14  
+    pd->g(3.14f);   // Derived::g(int) 3   
+  
+    // Bad : behavior depends on type of the pointer  
+    pb->h(3.14f);   // Base::h(float) 3.14  
+    pd->h(3.14f);   // Derived::h(float) 3.14  
+    return 0;  
+}  
+令人迷惑的隐藏规则
+本来仅仅区别重载与覆盖并不算困难，但是C++的隐藏规则使问题复杂性陡然增加。
+这里“隐藏”是指派生类的函数屏蔽了与其同名的基类函数，规则如下：
+（1）如果派生类的函数与基类的函数同名，但是参数不同。此时，不论有无virtual
+关键字，基类的函数将被隐藏（注意别与重载混淆）。
+（2）如果派生类的函数与基类的函数同名，并且参数也相同，但是基类函数没有virtual
+关键字。此时，基类的函数被隐藏（注意别与覆盖混淆）。
+上面的程序中：
+（1）函数Derived::f(float)覆盖了Base::f(float)。
+（2）函数Derived::g(int)隐藏了Base::g(float)，而不是重载。
+（3）函数Derived::h(float)隐藏了Base::h(float)，而不是覆盖。
+
+C++纯虚函数
+ 一、定义
+  纯虚函数是在基类中声明的虚函数，它在基类中没有定义，但要求任何派生类都要定义自己的实现方法。在基类中实现纯虚函数的方法是在函数原型后加“=0” 
+  virtual void funtion()=0 
+二、引入原因
+   1、为了方便使用多态特性，我们常常需要在基类中定义虚拟函数。 
+   2、在很多情况下，基类本身生成对象是不合情理的。例如，动物作为一个基类可以派生出老虎、孔雀等子类，但动物本身生成对象明显不合常理。 
+  为了解决上述问题，引入了纯虚函数的概念，将函数定义为纯虚函数（方法：virtual ReturnType Function()= 0;），则编译器要求在派生类中必须予以重写以实现多态性。同时含有纯虚拟函数的类称为抽象类，它不能生成对象。这样就很好地解决了上述两个问题。
+三、相似概念
+   1、多态性 
+  指相同对象收到不同消息或不同对象收到相同消息时产生不同的实现动作。C++支持两种多态性：编译时多态性，运行时多态性。 
+  a、编译时多态性：通过重载函数实现 
+  b、运行时多态性：通过虚函数实现。 
+  2、虚函数 
+  虚函数是在基类中被声明为virtual，并在派生类中重新定义的成员函数，可实现成员函数的动态覆盖（Override）
+  3、抽象类 
+  包含纯虚函数的类称为抽象类。由于抽象类包含了没有定义的纯虚函数，所以不能定义抽象类的对象。
+
+
+
+3、掌握 C++ 异常处理
+
