@@ -137,7 +137,7 @@ private:
         double side;        // length of the side
         double angle;        // the angle between a side and the x-axis
 public:
-        Square(double i = 0, double j = 0, double d = 0, double a = 0)        : Figure(i, j), side(d), angle(a) { }
+        Square(double i = 0, double j = 0, double d = 0, double a = 0): Figure(i, j), side(d), angle(a) { }
    void draw( )
         {
                 cout << "A square with center ";
