@@ -70,16 +70,54 @@ void insertList(Seqlist *_pSeqlist,DataType _data,int _nIndex)
 }
 
 
+void deleteList(Seqlist *_pSeqlist,int _nIndex)
+{
+    int numLength = _pSeqlist->arrLength; //从指针中取出某个属性值
+    //判断插入的位置是否越界
+    if(_nIndex<0 || _nIndex >numLength){
+        printf("指定的下标索引越界，请重新指定  \n");
+        return;
+    }
+    
+    //如果插入的位置，超过 100 ，溢出
+    if (_pSeqlist->arrLength > LISTSIZE) {
+        printf("现在标中数据，已经超过 最大长度，发生溢出错误  \n");
+        return;
+    }
+    
+    //从最后到插入位置截至，从后往前推导
+    //arrLength  10 存入数组的下标，最大是 0-9
+    for(int i=_nIndex;i<=_pSeqlist->arrLength-1;i++)
+    {
+        _pSeqlist->arr[i] = _pSeqlist->arr[i+1];
+    }
+
+    //表中现有数据的长度 -1
+    _pSeqlist->arrLength--;
+    
+    //打印所有数据
+    for (int i=0; i<_pSeqlist->arrLength; i++) {
+        printf("第 %d 个元素值为 %d \n",i,_pSeqlist->arr[i]);
+    }
+}
+
+
+
 
 int main(int argc, const char * argv[])
 {
+    //int arr[100]={20,12,30,25,26};
+    
     //数组功能太弱
     Seqlist list={{20,12,30,25,26},5};
     
     //printf("结构体中的 长度 %d \n",list.arrLength);
     
     //调用完成的算法，实现数据的插入和打印
-    insertList(&list, 10, 2);
+    //insertList(&list, 10, 2);
+    
+    deleteList(&list,2);
+    
     
     return 0;
 }
